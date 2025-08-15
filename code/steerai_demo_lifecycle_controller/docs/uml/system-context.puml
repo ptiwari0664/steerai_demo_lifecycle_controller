@@ -1,0 +1,23 @@
+@startuml
+title System Context
+
+actor "Operator" as User
+
+node "Host OS" as Host {
+  component "X Server\n(X11 / XWayland)" as X11
+  frame "Docker Engine" as Docker
+}
+
+node "Docker Container\nROS Humble" as C {
+  component "turtlesim_node" as Turtlesim
+  component "TurtleLifecycleController\n(LifecycleNode)" as Ctrl
+  database "ROS 2 Middleware\n(DDS)" as DDS
+}
+
+User --> X11 : GUI
+X11 <..> Turtlesim : DISPLAY
+Ctrl <--> DDS
+Turtlesim <--> DDS
+Docker -- C
+
+@enduml

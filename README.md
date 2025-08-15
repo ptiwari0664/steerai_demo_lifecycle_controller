@@ -73,27 +73,7 @@ ros2 param set /turtle_lifecycle_controller angular_speed 1.5
 ## System Architecture and Process Flow
 
 ### 1) System Context
-```mermaid
-flowchart LR
-  User[Operator]
-
-  subgraph Host OS
-    X11[X Server\nor XWayland]
-    Docker[Docker Engine]
-  end
-
-  subgraph Docker Container\nROS Humble
-    Turtlesim[turtlesim_node]
-    Ctrl[TurtleLifecycleController\nLifecycleNode]
-    ROS2[ROS 2 Middleware\nDDS]
-  end
-
-  User --> X11
-  X11 <---> Turtlesim
-  Ctrl <---> ROS2
-  Turtlesim <---> ROS2
-  Docker --- Docker Container\nROS Humble
-```
+![System Context](code/steerai_demo_lifecycle_controller/docs/svg/system-context.svg)
 
 ### 2) Node Process Flow
 ```mermaid
