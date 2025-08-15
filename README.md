@@ -75,15 +75,17 @@ ros2 param set /turtle_lifecycle_controller angular_speed 1.5
 ### 1) System Context
 ```mermaid
 flowchart LR
+  %% C4-style Level 1 (safe labels: no parentheses/colons)
   User([Operator])
+
   subgraph Host[Host OS]
     X11[X Server / XWayland]
     Docker[(Docker Engine)]
   end
 
-  subgraph Container[Docker Container : ROS Humble]
+  subgraph Container[Docker Container / ROS Humble]
     Turtlesim[turtlesim_node]
-    Ctrl[TurtleLifecycleController (LifecycleNode)]
+    Ctrl[TurtleLifecycleController\n<<LifecycleNode>>]
     ROS2[ROS 2 Middleware (DDS)]
   end
 
@@ -92,7 +94,7 @@ flowchart LR
   User --> Ctrl
   Ctrl <--> ROS2
   Turtlesim <--> ROS2
-  Docker <-- bind mounts & net=host --> Container
+  Docker <-- bind mounts & host net --> Container
 ```
 
 ### 2) Node Process Flow
