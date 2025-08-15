@@ -40,6 +40,43 @@ Build:
 colcon build --packages-select steerai_demo_lifecycle_controller
 source install/setup.bash
 ```
+## Docker Container Build and Usage
+Build the image using Dockerfile from the `steerai_demo_lifecycle_controller` folder
+
+```bash
+cd <steerai_demo_lifecycle_controller folder path>
+DOCKER_BUILDKIT=1 docker build -t steerai/lifecycle:humble .
+```
+Run the Container after successful image build
+
+```bash
+docker run --rm -it --name steerai_demo --env="DISPLAY=$DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --env="XAUTHORITY=$XAUTH" --volume="$XAUTH:$XAUTH" --net=host steerai/lifecycle:humble
+```
+
+Once inside the container, run below command to lunch the node and leave this node running in terminal
+
+```bash
+ros2 launch steerai_demo_lifecycle_controller demo.launch.py
+```
+
+Open another terminal:
+```bash
+docker exec -it steerai_demo bash
+# Now you can run:
+# Configure and activate lifecycle node
+ros2 lifecycle set /turtle_lifecycle_controller configure
+ros2 lifecycle set /turtle_lifecycle_controller activate
+
+# Switch to CIRCLE mode
+ros2 service call /set_mode std_srvs/srv/SetBool "{data: true}"
+
+# Enable circle motion and You should now see the turtle moving in circles.
+ros2 service call /toggle_circle std_srvs/srv/SetBool "{data: true}"
+
+# While the turtle is moving. You’ll see feedback streaming and a succeeded result while the turtle keeps circling.
+ros2 action send_goal /demo_action example_interfaces/action/Fibonacci "{order: 10}"
+```
+
 
 ## Launch
 
