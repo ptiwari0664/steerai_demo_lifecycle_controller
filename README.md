@@ -45,9 +45,8 @@ Once inside the container, run below command to source the workspace
 source install/setup.bash 
 source install/local_setup.bash 
 ```
+Now you can run below commands and play with the turtle:
 
-
-# Now you can run:
 ```bash
 # Configure and activate lifecycle node
 ros2 lifecycle set /turtle_lifecycle_controller configure
@@ -63,17 +62,12 @@ ros2 service call /toggle_circle std_srvs/srv/SetBool "{data: true}"
 ros2 action send_goal /demo_action example_interfaces/action/Fibonacci "{order: 10}"
 ```
 
-## 🛠 Adjust Parameters
+## 🛠 Adjust Parameters Dynamically 
+The linear speed and angular speed can be changed through launch file as well before launch. Additionally, these can be altered using below commands during runtime. 
 
 ```bash
 ros2 param set /turtle_lifecycle_controller linear_speed 0.8
 ros2 param set /turtle_lifecycle_controller angular_speed 1.5
-```
-
-## Action Example
-While the turtle is moving. You’ll see feedback streaming and a succeeded result while the turtle keeps circling.
-```bash
-ros2 action send_goal /demo_action example_interfaces/action/Fibonacci "{order: 10}"
 ```
 
 ## 📊 Flow Diagram
@@ -90,38 +84,3 @@ flowchart TD
     C -->|on_cleanup| B
     B -->|on_shutdown| H[FINALIZED]
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# installation
-```
-apt install python3-colcon-common-extensions
-apt install ros-humble-turtlesim
-apt install ros-humble-example-interfaces
-
-```
-
-
-
-## To create the package 
-
-'ros2 pkg create steerai_demo_lifecycle_controller --build-type ament_python --dependencies rclpy lifecycle_msgs std_srvs geometry_msgs turtlesim'
-
-
-## Test
-`colcon test --packages-select steerai_demo_lifecycle_controller`
