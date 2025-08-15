@@ -16,156 +16,190 @@ A **ROS 2 LifecycleNode–based demo controller** for `turtlesim` that demonstra
 
 ---
 
-## Installation
+## System Architecture and Process Flow
 
-Install dependencies:
-
-```bash
-sudo apt install python3-colcon-common-extensions
-sudo apt install ros-humble-turtlesim
-sudo apt install ros-humble-example-interfaces
-```
-
-Clone this repository into your ROS 2 workspace:
-
-```bash
-cd ~/ros2_ws/src
-git clone <repo_url>
-cd ..
-```
-
-Build:
-
-```bash
-colcon build --packages-select steerai_demo_lifecycle_controller
-source install/setup.bash
-```
-## Docker Container Build and Usage
-Build the image using Dockerfile from the `steerai_demo_lifecycle_controller` folder
-
-```bash
-cd <steerai_demo_lifecycle_controller folder path>
-DOCKER_BUILDKIT=1 docker build -t steerai/lifecycle:humble .
-```
-Run the Container after successful image build
-
-```bash
-docker run --rm -it --name steerai_demo --env="DISPLAY=$DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --env="XAUTHORITY=$XAUTH" --volume="$XAUTH:$XAUTH" --net=host steerai/lifecycle:humble
-```
-
-Once inside the container, run below command to lunch the node and leave this node running in terminal
-
-```bash
-ros2 launch steerai_demo_lifecycle_controller demo.launch.py
-```
-
-Open another terminal:
-```bash
-docker exec -it steerai_demo bash
-# Now you can run:
-# Configure and activate lifecycle node
-ros2 lifecycle set /turtle_lifecycle_controller configure
-ros2 lifecycle set /turtle_lifecycle_controller activate
-
-# Switch to CIRCLE mode
-ros2 service call /set_mode std_srvs/srv/SetBool "{data: true}"
-
-# Enable circle motion and You should now see the turtle moving in circles.
-ros2 service call /toggle_circle std_srvs/srv/SetBool "{data: true}"
-
-# While the turtle is moving. You’ll see feedback streaming and a succeeded result while the turtle keeps circling.
-ros2 action send_goal /demo_action example_interfaces/action/Fibonacci "{order: 10}"
-```
-
-
-## Launch
-
-Run the turtlesim and lifecycle controller:
-
-```bash
-ros2 launch steerai_demo_lifecycle_controller demo.launch.py
-```
-
-In a new terminal, activate the node:
-
-```bash
-# Configure and activate lifecycle node
-ros2 lifecycle set /turtle_lifecycle_controller configure
-ros2 lifecycle set /turtle_lifecycle_controller activate
-```
-
-## 🎮 Controlling the Turtle
-
-```bash
-# Switch to CIRCLE mode
-ros2 service call /set_mode std_srvs/srv/SetBool "{data: true}"
-
-# Enable circle motion
-ros2 service call /toggle_circle std_srvs/srv/SetBool "{data: true}"
-
-```
-You should now see the turtle moving in circles.
-
-
-## 🛠 Adjust Parameters
-
-```bash
-ros2 param set /turtle_lifecycle_controller linear_speed 0.8
-ros2 param set /turtle_lifecycle_controller angular_speed 1.5
-```
-
-## Action Example
-While the turtle is moving. You’ll see feedback streaming and a succeeded result while the turtle keeps circling.
-```bash
-ros2 action send_goal /demo_action example_interfaces/action/Fibonacci "{order: 10}"
-```
-
-## 📊 Flow Diagram
-
+#### 1) Component / Package Structure
 ```mermaid
-flowchart TD
-    A[Launch Node] --> B[UNCONFIGURED]
-    B -->|on_configure| C[INACTIVE]
-    C -->|on_activate| D[ACTIVE]
-    D -->|Service: set_mode/toggle_circle| E[Circle Motion]
-    D -->|Service: go_home| F[Teleport to Center]
-    D -->|Action: Fibonacci| G[Compute Sequence]
-    D -->|on_deactivate| C
-    C -->|on_cleanup| B
-    B -->|on_shutdown| H[FINALIZED]
+flowchart TB
+  subgraph Pkg[steerai_demo_lifecycle_controller (ament_python)]
+    subgraph Core[core (ROS-agnostic)]
+      SM[state_machine.py\nMode/Event/Status + history]
+      BHV[behavior.py\ncompute_command()]
+    end
+
+    Node[node.py\nLifecycleNode adapter]
+    Launch[launch/demo.launch.py]
+    Tests[tests/\nunit + launch_testing]
+  end
+
+  Turtlesim[[turtlesim_node]]
+  ROSDDS[(ROS 2 DDS)]
+  X11[X Server]
+
+  Node -- pub/sub/srv/action/timer --> ROSDDS
+  Turtlesim -- /pose ↔ /cmd_vel --> ROSDDS
+  Node -- converts --> Core
+  Turtlesim -. GUI .-> X11
 ```
 
+#### 2) Class Diagram (Core + Adapter) 
+```mermaid
+classDiagram
+  direction LR
 
+  class Mode {
+    <<enum>>
+    IDLE
+    CIRCLE
+  }
 
+  class Event {
+    <<enum>>
+    SET_IDLE
+    SET_CIRCLE
+    ERROR
+    CLEAR_ERROR
+  }
 
+  class Status {
+    +Mode mode
+    +bool has_error
+    +str? reason
+    +float updated_at
+  }
 
+  class TransitionRec {
+    +float t
+    +Mode frm
+    +Event evt
+    +Mode to
+    +str? reason
+    +bool has_error
+  }
 
+  class StateMachine {
+    -Status _status
+    -deque~TransitionRec~ _hist
+    +status : Status
+    +dispatch(evt: Event, reason?: str) : Status
+    +history() : list~TransitionRec~
+    +last_transition() : TransitionRec?
+    +clear_history() : void
+    -_apply(status: Status, evt: Event, reason?: str) : Status
+  }
 
+  class Command {
+    +float lin_x
+    +float ang_z
+  }
 
+  class Behavior {
+    <<module>>
+    +compute_command(status: Status, circle_enabled: bool, lin: float, ang: float) : Command
+  }
 
+  class TurtleLifecycleController {
+    <<LifecycleNode>>
+    -StateMachine _sm
+    -bool _is_active
+    -bool _circle_enabled
+    -Publisher~Twist~ _pub
+    -Subscription~Pose~ _pose_sub
+    -Timer _timer
+    -Services: /toggle_circle, /set_mode, /go_home, /health
+    -ActionServer~Fibonacci~ _action
+    +on_configure() : TransitionCallbackReturn
+    +on_activate() : TransitionCallbackReturn
+    +on_deactivate() : TransitionCallbackReturn
+    +on_cleanup() : TransitionCallbackReturn
+    +on_shutdown() : TransitionCallbackReturn
+    +_on_timer() : void
+    +_on_param_update(...) : SetParametersResult
+  }
 
-
-
-
-
-
-
-
-
-# installation
+  StateMachine <.. Behavior : uses
+  TurtleLifecycleController --> StateMachine : owns
+  TurtleLifecycleController ..> Behavior : calls
 ```
-apt install python3-colcon-common-extensions
-apt install ros-humble-turtlesim
-apt install ros-humble-example-interfaces
 
+#### 3) Lifecycle Sequence (Configure → Activate → Run → Deactivate)
+```mermaid
+sequenceDiagram
+  autonumber
+  participant L as launch/demo.launch.py
+  participant C as TurtleLifecycleController
+  participant DDS as ROS 2 DDS
+  participant T as turtlesim_node
+
+  L->>T: start executable
+  L->>C: start LifecycleNode (UNCONFIGURED)
+
+  Note over C: ros2 lifecycle set ... configure
+  C->>C: on_configure()<br/>create lifecycle publisher, sub, services, action, timer (paused)
+  C->>DDS: register pub/sub/services/action
+  C-->>L: INACTIVE
+
+  Note over C: ros2 lifecycle set ... activate
+  C->>C: on_activate()<br/>_is_active = True, publisher.on_activate(), timer.reset()
+  C-->>L: ACTIVE
+
+  loop Every timer tick
+    C->>C: read parameters (lin, ang); status := _sm.status
+    C->>C: cmd = compute_command(status, _circle_enabled, lin, ang)
+    C->>DDS: publish Twist(/turtle1/cmd_vel)
+    DDS->>T: deliver Twist
+  end
+
+  Note over C: ros2 lifecycle set ... deactivate
+  C->>C: on_deactivate()<br/>_is_active=False, timer.cancel(), publisher.on_deactivate()
+  C-->>L: INACTIVE
 ```
 
+#### 4) Operational Mode & Events (Internal State Machine)
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
+    state "ERROR FREEZE" as ERR <<choice>>
 
+    IDLE --> CIRCLE: Event.SET_CIRCLE
+    CIRCLE --> IDLE: Event.SET_IDLE
 
-## To create the package 
+    IDLE --> ERR: Event.ERROR(reason)
+    CIRCLE --> ERR: Event.ERROR(reason)
 
-'ros2 pkg create steerai_demo_lifecycle_controller --build-type ament_python --dependencies rclpy lifecycle_msgs std_srvs geometry_msgs turtlesim'
+    ERR --> IDLE: Event.CLEAR_ERROR [previous mode was IDLE]
+    ERR --> CIRCLE: Event.CLEAR_ERROR [previous mode was CIRCLE]
 
+    note right of ERR
+      While in error:
+      • Mode-change events ignored
+      • Behavior publishes safe (zero) commands
+    end note
+```
 
-## Test
-`colcon test --packages-select steerai_demo_lifecycle_controller`
+#### 5) Service / Action Interactions (when ACTIVE)
+```mermaid
+sequenceDiagram
+  autonumber
+  participant OP as Operator
+  participant C as TurtleLifecycleController
+  participant SM as StateMachine
+  participant B as Behavior
+
+  rect rgb(230,255,230)
+  Note over C: ACTIVE gate (C._is_active == true)
+  end
+
+  OP->>C: /set_mode(SetBool{data:true})
+  C->>SM: dispatch(Event.SET_CIRCLE)
+  SM-->>C: Status{mode=CIRCLE}
+  C-->>OP: success, "Mode=CIRCLE"
+
+  OP->>C: /toggle_circle(SetBool{data:true})
+  C->>C: _circle_enabled = true
+  C-->>OP: success, "circle ON"
+
+  C->>B: compute_command(Status, true, lin, ang)
+  B-->>C: Command{lin_x, ang_z}
+  C->>turtlesim: /cmd_vel(Twist)
+```

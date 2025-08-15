@@ -70,8 +70,32 @@ ros2 param set /turtle_lifecycle_controller linear_speed 0.8
 ros2 param set /turtle_lifecycle_controller angular_speed 1.5
 ```
 
-## 📊 Flow Diagram
+## System Architecture and Process Flow
 
+### 1) System Context
+```mermaid
+flowchart LR
+  User([Operator])
+  subgraph Host[Host OS]
+    X11[X Server / XWayland]
+    Docker[(Docker Engine)]
+  end
+
+  subgraph Container[Docker Container : ROS Humble]
+    Turtlesim[turtlesim_node]
+    Ctrl[TurtleLifecycleController (LifecycleNode)]
+    ROS2[ROS 2 Middleware (DDS)]
+  end
+
+  User -- GUI --> X11
+  X11 <-. DISPLAY .-> Turtlesim
+  User --> Ctrl
+  Ctrl <--> ROS2
+  Turtlesim <--> ROS2
+  Docker <-- bind mounts & net=host --> Container
+```
+
+### 2) Node Process Flow
 ```mermaid
 flowchart TD
     A[Launch Node] --> B[UNCONFIGURED]

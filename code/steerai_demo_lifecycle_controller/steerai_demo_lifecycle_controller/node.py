@@ -126,7 +126,7 @@ class TurtleLifecycleController(LifecycleNode):
                 self,
                 Fibonacci,
                 'demo_action',
-                execute_callback=self._on_action_execute,  # synchronous version
+                execute_callback=self._on_action_execute,
                 goal_callback=self._on_action_goal,
                 cancel_callback=self._on_action_cancel,
                 callback_group=self._cbg,
@@ -150,7 +150,7 @@ class TurtleLifecycleController(LifecycleNode):
             if self._pub is None or self._timer is None:
                 self.get_logger().error('Missing resources in activate')
                 return TransitionCallbackReturn.FAILURE
-            self._pub.on_activate(state)   # Humble requires state arg
+            self._pub.on_activate(state) 
             self._is_active = True
             self._timer.reset()
             self.get_logger().info(f'Activated, mode={self._sm.status.mode.name}')
@@ -166,7 +166,7 @@ class TurtleLifecycleController(LifecycleNode):
             if self._timer:
                 self._timer.cancel()
             if self._pub:
-                self._pub.on_deactivate(state)  # Humble requires state arg
+                self._pub.on_deactivate(state)
             self.get_logger().info('Deactivated (timer stopped, publisher inactive)')
             return TransitionCallbackReturn.SUCCESS
         except Exception as e:
