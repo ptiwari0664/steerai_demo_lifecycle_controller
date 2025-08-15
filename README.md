@@ -16,30 +16,6 @@ A **ROS 2 LifecycleNode–based demo controller** for `turtlesim` that demonstra
 
 ---
 
-## Installation
-
-Install dependencies:
-
-```bash
-sudo apt install python3-colcon-common-extensions
-sudo apt install ros-humble-turtlesim
-sudo apt install ros-humble-example-interfaces
-```
-
-Clone this repository into your ROS 2 workspace:
-
-```bash
-cd ~/ros2_ws/src
-git clone <repo_url>
-cd ..
-```
-
-Build:
-
-```bash
-colcon build --packages-select steerai_demo_lifecycle_controller
-source install/setup.bash
-```
 ## Docker Container Build and Usage
 Build the image using Dockerfile from the `steerai_demo_lifecycle_controller` folder
 
@@ -56,13 +32,23 @@ docker run --rm -it --name steerai_demo --env="DISPLAY=$DISPLAY" --env="QT_X11_N
 Once inside the container, run below command to lunch the node and leave this node running in terminal
 
 ```bash
+source install/local_setup.bash
 ros2 launch steerai_demo_lifecycle_controller demo.launch.py
 ```
 
 Open another terminal:
 ```bash
-docker exec -it steerai_demo bash
+docker exec -it turtle_lifecycle_dev bash
+```
+Once inside the container, run below command to source the workspace
+```bash
+source install/setup.bash 
+source install/local_setup.bash 
+```
+
+
 # Now you can run:
+```bash
 # Configure and activate lifecycle node
 ros2 lifecycle set /turtle_lifecycle_controller configure
 ros2 lifecycle set /turtle_lifecycle_controller activate
@@ -76,36 +62,6 @@ ros2 service call /toggle_circle std_srvs/srv/SetBool "{data: true}"
 # While the turtle is moving. You’ll see feedback streaming and a succeeded result while the turtle keeps circling.
 ros2 action send_goal /demo_action example_interfaces/action/Fibonacci "{order: 10}"
 ```
-
-
-## Launch
-
-Run the turtlesim and lifecycle controller:
-
-```bash
-ros2 launch steerai_demo_lifecycle_controller demo.launch.py
-```
-
-In a new terminal, activate the node:
-
-```bash
-# Configure and activate lifecycle node
-ros2 lifecycle set /turtle_lifecycle_controller configure
-ros2 lifecycle set /turtle_lifecycle_controller activate
-```
-
-## 🎮 Controlling the Turtle
-
-```bash
-# Switch to CIRCLE mode
-ros2 service call /set_mode std_srvs/srv/SetBool "{data: true}"
-
-# Enable circle motion
-ros2 service call /toggle_circle std_srvs/srv/SetBool "{data: true}"
-
-```
-You should now see the turtle moving in circles.
-
 
 ## 🛠 Adjust Parameters
 

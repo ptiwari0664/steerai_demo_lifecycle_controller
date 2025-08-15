@@ -12,27 +12,16 @@ RUN apt-get update && apt-get install -y \
 
 # Workspace
 WORKDIR /ws/src
-# Copy only the package first for better layer caching
-COPY steerai_demo_lifecycle_controller ./steerai_demo_lifecycle_controller
-COPY launch ./steerai_demo_lifecycle_controller/launch
-COPY package.xml ./steerai_demo_lifecycle_controller/
-COPY setup.py ./steerai_demo_lifecycle_controller/
-COPY setup.cfg ./steerai_demo_lifecycle_controller/
-COPY resource ./steerai_demo_lifecycle_controller/resource
-COPY test ./steerai_demo_lifecycle_controller/tests
+COPY code/ ./code
 
 # Build
 WORKDIR /ws
-RUN . /opt/ros/humble/setup.bash && colcon build --packages-select steerai_demo_lifecycle_controller --symlink-install
+RUN . /opt/ros/humble/setup.bash && colcon build --symlink-install
 
 # Runtime env
-ENV QT_QPA_PLATFORM=offscreen
+# ENV QT_QPA_PLATFORM=offscreen (offscreen for headless)
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
-# Default entrypoint: headless launch
-# (xvfb avoids Qt display issues inside containers)
-CMD [ "bash", "-lc", "source /opt/ros/humble/setup.bash && source /ws/install/setup.bash && exec bash" ]
-# CMD xvfb-run -s "-screen 0 1024x768x24" bash -lc "\
-#   . /opt/ros/humble/setup.bash && \
-#   . /ws/install/setup.bash && \
-#   ros2 launch steerai_demo_lifecycle_controller demo.launch.py"
+# Default entrypoint: launch with source
+CMD [ "bash", "-lc", "source /opt/ros/humble/setup.bash && source install/local_setup.bash && exec bash" ]
+
