@@ -93,7 +93,6 @@ flowchart LR
   Ctrl <---> ROS2
   Turtlesim <---> ROS2
   Docker --- Docker Container ROS Humble
-
 ```
 
 ### 2) Node Process Flow
