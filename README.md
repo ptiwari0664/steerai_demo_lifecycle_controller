@@ -73,7 +73,9 @@ ros2 param set /turtle_lifecycle_controller angular_speed 1.5
 ## System Architecture and Process Flow
 
 ### 1) System Context
-![System Context](code/steerai_demo_lifecycle_controller/docs/svg/system-context.svg)
+<p align="center">
+  <img src="code/steerai_demo_lifecycle_controller/docs/svg/system-context.svg" alt="System Context" width="600"/>
+</p>
 
 ### 2) Node Process Flow
 ```mermaid
