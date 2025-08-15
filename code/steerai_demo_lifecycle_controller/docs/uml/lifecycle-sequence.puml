@@ -1,0 +1,34 @@
+@startuml
+title Lifecycle Sequence
+
+participant "launch/demo.launch.py" as L
+participant "TurtleLifecycleController" as C
+participant "ROS 2 DDS" as DDS
+participant "turtlesim_node" as T
+
+L -> T : start executable
+L -> C : start LifecycleNode (UNCONFIGURED)
+
+activate C
+C -> C : on_configure()\ncreate lifecycle pub/sub/srv/action\ncreate timer (paused)
+C -> DDS : register endpoints
+C --> L : INACTIVE
+deactivate C
+
+activate C
+C -> C : on_activate()\n_is_active=true\npublisher.on_activate()\ntimer.reset()
+C --> L : ACTIVE
+deactivate C
+
+loop every timer tick
+  C -> C : read params (lin, ang)\nstatus := _sm.status\ncompute_command(...)
+  C -> DDS : publish /turtle1/cmd_vel (Twist)
+  DDS -> T : deliver
+end
+
+activate C
+C -> C : on_deactivate()\n_is_active=false\ntimer.cancel()\npublisher.on_deactivate()
+C --> L : INACTIVE
+deactivate C
+
+@enduml

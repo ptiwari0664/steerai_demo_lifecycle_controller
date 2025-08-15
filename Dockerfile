@@ -18,6 +18,12 @@ COPY code/ ./code
 WORKDIR /ws
 RUN . /opt/ros/humble/setup.bash && colcon build --symlink-install
 
+# Run tests to validate build
+RUN . /opt/ros/humble/setup.sh && \
+    . install/setup.sh && \
+    colcon test --packages-select steerai_demo_lifecycle_controller && \
+    colcon test-result --verbose
+
 # Runtime env
 # ENV QT_QPA_PLATFORM=offscreen (offscreen for headless)
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
