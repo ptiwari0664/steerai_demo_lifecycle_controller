@@ -48,15 +48,12 @@ It can:
 Build the image using Dockerfile from the `steerai_demo_lifecycle_controller` folder
 
 ```bash
-cd <steerai_demo_lifecycle_controller folder path>
-DOCKER_BUILDKIT=1 docker build -t steerai/lifecycle:humble .
+mkdir ~/ros2_ws
+cd ~/ros2_ws
+git clone https://github.com/ptiwari0664/steerai_demo_lifecycle_controller.git
+cd steerai_demo_lifecycle_controller
+./run.sh
 ```
-Run the Container after successful image build
-
-```bash
-docker run --rm -it --name steerai_demo --env="DISPLAY=$DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --env="XAUTHORITY=$XAUTH" --volume="$XAUTH:$XAUTH" --net=host steerai/lifecycle:humble
-```
-
 Once inside the container, run below command to lunch the node and leave this node running in terminal
 
 ```bash
