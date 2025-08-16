@@ -1,6 +1,7 @@
 # steerai_demo_lifecycle_controller
 
-A **ROS 2 LifecycleNode–based demo controller** for `turtlesim` that demonstrates:
+## Purpose
+This package demonstrates a **ROS 2 LifecycleNode–based controller** for `turtlesim`. It is designed as a teaching and evaluation tool to showcase:
 
 - ✅ **Full LifecycleNode support** (`configure`, `activate`, `deactivate`, `cleanup`, `shutdown`)
 - ✅ **Internal operational state machine** (modes: `IDLE`, `CIRCLE`, `ERROR`)
@@ -14,21 +15,45 @@ A **ROS 2 LifecycleNode–based demo controller** for `turtlesim` that demonstra
   - Action Server (`/demo_action` implementing `example_interfaces/action/Fibonacci`)
   - Timers
 
+The **core state machine** is ROS-agnostic and unit-tested, ensuring separation of concerns and testability.  
+
+---
+
+## Function
+
+The node manages a `turtlesim` robot via lifecycle transitions and an internal state machine.  
+
+It can:
+
+- Switch between **IDLE** and **CIRCLE** modes
+- **Toggle** circular motion at runtime
+- **Teleport the turtle home** via service call
+- Run a **demo Fibonacci action server** in parallel to robot control
+- Dynamically adjust **linear/angular speed** parameters
+
+---
+
+## Requirements
+
+- ROS 2 Humble (or newer)
+- `turtlesim`
+- `example_interfaces`
+- Docker (for containerized run, optional)
+- Display server (`X11` / `XWayland`) if running with GUI
+
+
 ---
 
 ## Docker Container Build and Usage
 Build the image using Dockerfile from the `steerai_demo_lifecycle_controller` folder
 
 ```bash
-cd <steerai_demo_lifecycle_controller folder path>
-DOCKER_BUILDKIT=1 docker build -t steerai/lifecycle:humble .
+mkdir ~/ros2_ws
+cd ~/ros2_ws
+git clone https://github.com/ptiwari0664/steerai_demo_lifecycle_controller.git
+cd steerai_demo_lifecycle_controller
+./run.sh
 ```
-Run the Container after successful image build
-
-```bash
-docker run --rm -it --name steerai_demo --env="DISPLAY=$DISPLAY" --env="QT_X11_NO_MITSHM=1" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" --env="XAUTHORITY=$XAUTH" --volume="$XAUTH:$XAUTH" --net=host steerai/lifecycle:humble
-```
-
 Once inside the container, run below command to lunch the node and leave this node running in terminal
 
 ```bash
@@ -73,9 +98,29 @@ ros2 param set /turtle_lifecycle_controller angular_speed 1.5
 ## System Architecture and Process Flow
 
 ### 1) System Context
-<p align="center">
-  <img src="code/steerai_demo_lifecycle_controller/docs/svg/system-context.svg" alt="System Context" width="600"/>
-</p>
+```mermaid
+flowchart LR
+  %% System Context
+
+  User[Operator]
+
+  subgraph Host_OS
+    X11[X Server]
+    Docker[Docker Engine]
+  end
+
+  subgraph Docker_Container_ROS_Humble
+    Turtlesim[turtlesim_node]
+    Ctrl[TurtleLifecycleController LifecycleNode]
+    ROS2[ROS 2 Middleware DDS]
+  end
+
+  User --> X11
+  X11 <---> Turtlesim
+  Ctrl <---> ROS2
+  Turtlesim <---> ROS2
+  Docker --- Docker_Container_ROS_Humble
+```
 
 ### 2) Node Process Flow
 ```mermaid

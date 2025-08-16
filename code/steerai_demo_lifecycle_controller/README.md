@@ -18,31 +18,7 @@ A **ROS 2 LifecycleNode–based demo controller** for `turtlesim` that demonstra
 
 ## System Architecture and Process Flow
 
-#### 1) Component / Package Structure
-```mermaid
-flowchart TB
-  subgraph Pkg[steerai_demo_lifecycle_controller (ament_python)]
-    subgraph Core[core (ROS-agnostic)]
-      SM[state_machine.py\nMode/Event/Status + history]
-      BHV[behavior.py\ncompute_command()]
-    end
-
-    Node[node.py\nLifecycleNode adapter]
-    Launch[launch/demo.launch.py]
-    Tests[tests/\nunit + launch_testing]
-  end
-
-  Turtlesim[[turtlesim_node]]
-  ROSDDS[(ROS 2 DDS)]
-  X11[X Server]
-
-  Node -- pub/sub/srv/action/timer --> ROSDDS
-  Turtlesim -- /pose ↔ /cmd_vel --> ROSDDS
-  Node -- converts --> Core
-  Turtlesim -. GUI .-> X11
-```
-
-#### 2) Class Diagram (Core + Adapter) 
+#### 1) Class Diagram (Core + Adapter) 
 ```mermaid
 classDiagram
   direction LR
@@ -122,40 +98,39 @@ classDiagram
   TurtleLifecycleController ..> Behavior : calls
 ```
 
-#### 3) Lifecycle Sequence (Configure → Activate → Run → Deactivate)
+#### 2) Lifecycle Sequence (Configure → Activate → Run → Deactivate)
 ```mermaid
 sequenceDiagram
   autonumber
-  participant L as launch/demo.launch.py
+  participant L as launcher
   participant C as TurtleLifecycleController
-  participant DDS as ROS 2 DDS
+  participant D as ROS2 DDS
   participant T as turtlesim_node
 
   L->>T: start executable
-  L->>C: start LifecycleNode (UNCONFIGURED)
+  L->>C: start lifecycle node UNCONFIGURED
 
   Note over C: ros2 lifecycle set ... configure
-  C->>C: on_configure()<br/>create lifecycle publisher, sub, services, action, timer (paused)
-  C->>DDS: register pub/sub/services/action
+  C->>C: on_configure()\ncreate lifecycle pub sub srv action\ncreate timer paused
+  C->>D: register endpoints
   C-->>L: INACTIVE
 
   Note over C: ros2 lifecycle set ... activate
-  C->>C: on_activate()<br/>_is_active = True, publisher.on_activate(), timer.reset()
+  C->>C: on_activate()\nset active flag\npublisher.on_activate()\ntimer.reset()
   C-->>L: ACTIVE
 
-  loop Every timer tick
-    C->>C: read parameters (lin, ang); status := _sm.status
-    C->>C: cmd = compute_command(status, _circle_enabled, lin, ang)
-    C->>DDS: publish Twist(/turtle1/cmd_vel)
-    DDS->>T: deliver Twist
+  loop every timer tick
+    C->>C: read parameters and status\ncompute command
+    C->>D: publish Twist on /turtle1/cmd_vel
+    D->>T: deliver Twist
   end
 
   Note over C: ros2 lifecycle set ... deactivate
-  C->>C: on_deactivate()<br/>_is_active=False, timer.cancel(), publisher.on_deactivate()
+  C->>C: on_deactivate()\nclear active flag\ntimer.cancel()\npublisher.on_deactivate()
   C-->>L: INACTIVE
 ```
 
-#### 4) Operational Mode & Events (Internal State Machine)
+#### 3) Operational Mode & Events (Internal State Machine)
 ```mermaid
 stateDiagram-v2
     [*] --> IDLE
@@ -177,7 +152,7 @@ stateDiagram-v2
     end note
 ```
 
-#### 5) Service / Action Interactions (when ACTIVE)
+#### 4) Service / Action Interactions (when ACTIVE)
 ```mermaid
 sequenceDiagram
   autonumber
