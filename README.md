@@ -1,6 +1,7 @@
 # steerai_demo_lifecycle_controller
 
-A **ROS 2 LifecycleNode–based demo controller** for `turtlesim` that demonstrates:
+## Purpose
+This package demonstrates a **ROS 2 LifecycleNode–based controller** for `turtlesim`. It is designed as a teaching and evaluation tool to showcase:
 
 - ✅ **Full LifecycleNode support** (`configure`, `activate`, `deactivate`, `cleanup`, `shutdown`)
 - ✅ **Internal operational state machine** (modes: `IDLE`, `CIRCLE`, `ERROR`)
@@ -13,6 +14,33 @@ A **ROS 2 LifecycleNode–based demo controller** for `turtlesim` that demonstra
   - Client (`/turtle1/teleport_absolute`)
   - Action Server (`/demo_action` implementing `example_interfaces/action/Fibonacci`)
   - Timers
+
+The **core state machine** is ROS-agnostic and unit-tested, ensuring separation of concerns and testability.  
+
+---
+
+## Function
+
+The node manages a `turtlesim` robot via lifecycle transitions and an internal state machine.  
+
+It can:
+
+- Switch between **IDLE** and **CIRCLE** modes
+- **Toggle** circular motion at runtime
+- **Teleport the turtle home** via service call
+- Run a **demo Fibonacci action server** in parallel to robot control
+- Dynamically adjust **linear/angular speed** parameters
+
+---
+
+## Requirements
+
+- ROS 2 Humble (or newer)
+- `turtlesim`
+- `example_interfaces`
+- Docker (for containerized run, optional)
+- Display server (`X11` / `XWayland`) if running with GUI
+
 
 ---
 
@@ -73,9 +101,29 @@ ros2 param set /turtle_lifecycle_controller angular_speed 1.5
 ## System Architecture and Process Flow
 
 ### 1) System Context
-<p align="center">
-  <img src="code/steerai_demo_lifecycle_controller/docs/svg/system-context.svg" alt="System Context" width="600"/>
-</p>
+```mermaid
+flowchart LR
+  %% System Context
+
+  User[Operator]
+
+  subgraph Host_OS
+    X11[X Server]
+    Docker[Docker Engine]
+  end
+
+  subgraph Docker_Container_ROS_Humble
+    Turtlesim[turtlesim_node]
+    Ctrl[TurtleLifecycleController LifecycleNode]
+    ROS2[ROS 2 Middleware DDS]
+  end
+
+  User --> X11
+  X11 <---> Turtlesim
+  Ctrl <---> ROS2
+  Turtlesim <---> ROS2
+  Docker --- Docker_Container_ROS_Humble
+```
 
 ### 2) Node Process Flow
 ```mermaid
